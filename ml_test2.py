@@ -4,6 +4,8 @@ Created on Sat Nov 23 22:23:40 2019
 
 @author: Hp
 """
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
 import matplotlib.pyplot as plt 
 from random import randrange
 from csv import reader
@@ -71,6 +73,7 @@ def create_tree(node, min_size, n_features, depth):
         node['left'] = max(set(outcomes), key = outcomes.count)
     else:
         node['left'] = get_split(left, n_features)
+        #split the node future 
         create_tree(node['left'], min_size, n_features, depth+1)
     if( len(right) <= min_size):
         #to get the most probable class of the terminal node
@@ -78,30 +81,29 @@ def create_tree(node, min_size, n_features, depth):
         node['right'] = max(set(outcomes), key = outcomes.count)
     else:
         node['right'] = get_split(right, n_features)
+        #split the node future
         create_tree(node['right'], min_size, n_features, depth+1)
 
 def random_forests(train, test, min_size, n_trees, n_features):
     forest = list()
     predictions =  []
+    #Creating trees 
     for i in range(n_trees):
         tree = get_split(train, n_features)
         create_tree(tree, min_size, n_features, 1)
         forest.append(tree)
+    #Testing the trees  
     for row in test:
         predictions_mid = []
         for tree in forest:
             prediction = predict(tree,row)
             predictions_mid.append(prediction)
-    #print(predictions)
         max_prediction = max(set(predictions_mid), key = predictions_mid.count)
         prediction = max_prediction
         predictions.append(prediction)
-    #print(predictions)
     return(predictions)
+#traversing the trees to predict the otucome to for the give test row 
 def predict(node, row):
-    #print(node)
-    #print(node['index'])
-    #print(row[node['index']])
     if(row[int(node['index'])] < node['value']):
         if isinstance(node['left'], dict):
             return predict(node['left'], row)
@@ -142,13 +144,8 @@ def evaluation_algorithm(dataset,  n_folds, min_size, n_trees, n_features):
         actual = list()
         for row in fold:
             actual.append(row[-1])
-        correct = 0
-    #print(predicted)
-        for i in range(len(actual)):
-            if (actual[i] == predicted[i]):
-                correct += 1
-        #print(actual)
-        accuracy = correct / float(len(actual)) * 100.0
+        accuracy = accuracy_score(actual, predicted)
+        accuracy = accuracy *100
         scores.append(accuracy)
     return scores
 #driver code 
@@ -158,21 +155,22 @@ if __name__ == "__main__":
         csv_reader = reader(f)
         for row in csv_reader:
             dataset.append(row)
-    fold_size = 6
+    fold_size = 7
     min_termination_size = 1
     sum_scores = 0.0
     n_features = int((len(dataset[0])-1)/2)
     n_trees = 1
     score = []
-    n_trees_list = [1,2,3,4,5,6,7,8,9,10]
+    n_trees_list = [1]
+    #n_trees_list = [1,3,5]
+    #n_trees_list = [1,2,3,4,5,6,7,8,9,10]
     mean_accuracies = list()
-    #print(n_features)
     for n_trees in n_trees_list:
         scores = evaluation_algorithm(dataset,fold_size, min_termination_size, n_trees, n_features)
         print('Trees: %d' % n_trees)
         for score in scores:  
             sum_scores = sum_scores + score
-        mean_accuracy = (sum_scores/6)
+        mean_accuracy = (sum_scores/7)
         mean_accuracies.append(mean_accuracy)
         sum_scores = 0 
         print('Mean Accuracy: %.2f%%' % (mean_accuracy))
@@ -180,6 +178,7 @@ if __name__ == "__main__":
     plt.xlabel('Number of trees')
     plt.ylabel('Accuracy')
     plt.show()
+    plt.savefig('random_forest.png')
 
 
  
